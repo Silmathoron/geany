@@ -1031,6 +1031,7 @@ void highlighting_init_styles(guint filetype_idx, GKeyFile *config, GKeyFile *co
 		init_styleset_case(MAKE);
 		init_styleset_case(MATLAB);
 		init_styleset_case(MARKDOWN);
+		init_styleset_case(NESTML);
 		init_styleset_case(NSIS);
 		init_styleset_case(OBJECTIVEC);
 		init_styleset_case(PASCAL);
@@ -1119,6 +1120,7 @@ void highlighting_set_styles(ScintillaObject *sci, GeanyFiletype *ft)
 		styleset_case(MAKE);
 		styleset_case(MARKDOWN);
 		styleset_case(MATLAB);
+		styleset_case(NESTML);
 		styleset_case(NSIS);
 		styleset_case(OBJECTIVEC);
 		styleset_case(PASCAL);
@@ -1566,6 +1568,10 @@ gboolean highlighting_is_string_style(gint lexer, gint style)
 
 		case SCLEX_VERILOG:
 			return (style == SCE_V_STRING);
+      
+		case SCLEX_NESTML:
+			return (style == SCE_NESTML_STRING ||
+            style == SCE_NESTML_LEXERROR);
 	}
 	return FALSE;
 }
@@ -1739,6 +1745,10 @@ gboolean highlighting_is_comment_style(gint lexer, gint style)
 				style == SCE_V_COMMENTLINE ||
 				style == SCE_V_COMMENTLINEBANG ||
 				style == SCE_V_COMMENT_WORD);
+
+      case SCLEX_NESTML:
+         return (style == SCE_NESTML_COMMENTLINE ||
+            style == SCE_NESTML_COMMENTBLOCK);
 	}
 	return FALSE;
 }

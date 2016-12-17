@@ -103,6 +103,7 @@ int Scintilla_LinkLexers() {
 	LINK_LEXER(lmMake);
 	LINK_LEXER(lmMarkdown);
 	// We use Octave instead of Matlab
+	LINK_LEXER(lmNESTML);
 	LINK_LEXER(lmNsis);
 	LINK_LEXER(lmNull);
 	LINK_LEXER(lmOctave);

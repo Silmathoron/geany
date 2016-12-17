@@ -1619,6 +1619,35 @@ static const HLKeyword highlighting_keywords_YAML[] =
 #define highlighting_keywords_ZEPHIR	highlighting_keywords_PHP
 #define highlighting_properties_ZEPHIR	highlighting_properties_PHP
 
+
+/* NESTML */
+#define highlighting_lexer_NESTML		SCLEX_NESTML
+static const HLStyle highlighting_styles_NESTML[] =
+{
+	{ SCE_NESTML_DEFAULT,				"default",					FALSE },
+	{ SCE_NESTML_COMMENTBLOCK,		"commentblock",				FALSE },
+	{ SCE_NESTML_COMMENTLINE,			"commentline",				FALSE },
+	{ SCE_NESTML_NUMBER,				"number",					FALSE },
+	{ SCE_NESTML_WORD,				"word",						FALSE },
+	{ SCE_NESTML_WORD2,				"word2",					FALSE },
+	{ SCE_NESTML_WORD3,				"word3",					FALSE },
+	{ SCE_NESTML_WORD4,				"word4",					FALSE },
+	{ SCE_NESTML_STRING,				"string",					FALSE },
+	{ SCE_NESTML_CHARACTER,			"character",				FALSE },
+	{ SCE_NESTML_OPERATOR,			"operator",					FALSE },
+	{ SCE_NESTML_IDENTIFIER,			"identifier",				FALSE },
+	{ SCE_NESTML_LEXERROR,			"lexerror",					FALSE },
+};
+static const HLKeyword highlighting_keywords_NESTML[] =
+{
+	{ 0, "primary",		FALSE },
+	/* SCI_SETKEYWORDS = 1 - secondary + global tags file types */
+	{ 1, "secondary",	TRUE },
+	{ 2, "tertiary",	FALSE },
+	/* SCI_SETKEYWORDS = 3 is for current session types - see document_highlight_tags() */
+};
+#define highlighting_properties_NESTML		EMPTY_PROPERTIES
+
 G_END_DECLS
 
 #endif /* GEANY_HIGHLIGHTING_MAPPINGS_H */

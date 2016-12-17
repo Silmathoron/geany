@@ -31,6 +31,7 @@ lexers/LexLua.cxx \
 lexers/LexMake.cxx \
 lexers/LexMarkdown.cxx \
 lexers/LexMatlab.cxx \
+lexers/LexNESTML.cxx \
 lexers/LexNsis.cxx \
 lexers/LexNull.cxx \
 lexers/LexPascal.cxx \
