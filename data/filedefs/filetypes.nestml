@@ -6,19 +6,19 @@ commentblock=comment
 commentline=comment_line
 number=number_1
 word=keyword_1
-word2=keyword_2
-word3=keyword_3
-word4=type
+word2=function
+word3=type
+word4=type,italic
 string=string_1
 character=character
 operator=operator
-identifier=identifier_1
+identifier=type,italic
 lexerror=error
 
 [keywords]
 # all items must be in one line
-primary=if elif else neuron equations internals input update parameters state output end function shape for
-secondary=pA pF mV nS ms real integer integrate_odes inhibitory excitatory spike current emit_spike get_sum steps
+primary=if elif else neuron equations internals input update parameters state output end function shape for alias
+secondary=real integer integrate_odes inhibitory excitatory spike current emit_spike get_sum steps
 tertiary=
 
 [settings]

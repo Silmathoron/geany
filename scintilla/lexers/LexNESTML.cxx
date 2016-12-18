@@ -15,6 +15,7 @@
 #include <ctype.h>
 
 #include <string>
+#include <vector>
 #include <map>
 
 #include "ILexer.h"
@@ -34,9 +35,104 @@
 using namespace Scintilla;
 #endif
 
+
+inline bool IsAWordChar(int ch) {
+   return (ch < 0x80) && (isalnum(ch) || ch == '_' || ch == '$' || ch == '\'');
+}
+
+inline size_t lengthOf(const char** charArray) {
+   return (sizeof(*charArray)/sizeof(**charArray));
+}
+
+// keywords related declarations
 static const int NUM_NESTML_KEYWORD_LISTS = 4;
 static const int MAX_NESTML_IDENT_CHARS = 1023;
 
+enum kwType { kwNeuron, kwDef, kwOther };
+
+// units
+const char *units[] = {"m", "g", "s", "A", "K", "mol", "cd", "Bq",
+   "Hz", "Pa", "V", "C", "J", "S", "W", "F", "N", "Sv", "Wb", "Gy", "Ohm",
+   "TH", "kat"};
+std::vector<std::string> vecUnits(units, units + 23);
+
+const char *unitMagnitudes[] = {"y", "z", "a", "f", "p", "n", "mu", "m", "c",
+   "d", "da", "h", "k", "M", "G", "T", "P", "E", "Z", "Y"};
+std::vector<std::string> vecMagnitudes(
+   unitMagnitudes, unitMagnitudes + 20);
+
+bool MatchUnit(Accessor &styler, Sci_Position pos, unsigned int mag_len)
+{
+   // test all units
+   for (unsigned int j = 0; j < vecUnits.size(); j++)
+   {
+      size_t k = 0;
+      size_t unit_len = vecUnits[j].size();
+      char currentChar = styler.SafeGetCharAt(pos + mag_len + k - 2);
+      printf(&currentChar);
+      printf("\n");
+      bool matchString = true;
+      while ((currentChar != '\0') && IsAWordChar(currentChar) && (k < unit_len))
+      {
+         printf("Compare: ");
+         printf(&currentChar);
+         printf(" ");
+         printf(&vecUnits[j][k]);
+         printf("\n");
+         matchString = currentChar == vecUnits[j][k] ? matchString : false;
+         k++;
+         currentChar = styler.SafeGetCharAt(pos + mag_len + k - 2);
+      }
+      // if the current unit matched, check is not part of a longer word
+      if (matchString) {
+         printf("string matched: ");
+         printf(&currentChar);
+         printf("\n");
+         if (!IsAWordChar(styler.SafeGetCharAt(pos + mag_len + k - 1))) {
+            return true;
+         }
+      }
+   }
+   return false;
+}
+
+bool IsNestmlUnit(Accessor &styler, const char* s, Sci_Position pos)
+{
+   bool isUnit = false;
+   size_t mag_len = 0;
+   for (size_t i = 0; i < vecMagnitudes.size(); i++)
+   {
+      char magnitude[vecMagnitudes[i].size()];
+      strcpy(magnitude, vecMagnitudes[i].c_str());
+      //~ printf(magnitude);
+      //~ printf("\n");
+      // test whether we have a magnitude
+      const char *resSearch = strstr(s, magnitude);
+      if (resSearch != NULL && !(resSearch-s)) {
+         mag_len = vecMagnitudes[i].size();
+         char currentChar = styler.SafeGetCharAt(pos + mag_len - 2);
+         // if we do, check whether it is folloed by a valid unit
+         printf("matching magnitude: ");
+         printf(resSearch);
+         printf(" ");
+         printf(magnitude);
+         printf(" ");
+         printf(&currentChar);
+         printf("\n");
+         isUnit = MatchUnit(styler, pos, mag_len);
+      } else {
+         mag_len = 0;
+      }
+   }
+   if (!isUnit)
+   {
+      printf("no match magnitude\n");
+      isUnit = MatchUnit(styler, pos, mag_len);
+   }
+   return isUnit;
+}
+
+// comments
 static bool IsStreamCommentStyle(int style) {
 	return (style == SCE_NESTML_COMMENTBLOCK || style == SCE_NESTML_COMMENTLINE);
 }
@@ -175,13 +271,8 @@ static bool IsWhitespace(int c) {
 }
 
 /* This isn't quite right for Unicode identifiers */
-static bool IsIdentifierStart(int ch) {
-	return (IsASCII(ch) && (isalpha(ch) || ch == '_')) || !IsASCII(ch);
-}
-
-/* This isn't quite right for Unicode identifiers */
-static bool IsIdentifierContinue(int ch) {
-	return (IsASCII(ch) && (isalnum(ch) || ch == '_' || ch == '\'')) || !IsASCII(ch);
+static bool IsWordStart(int ch) {
+	return (ch < 0x80) && (isalpha(ch) || ch == '_' || ch == '$');
 }
 
 static void ScanWhitespace(Accessor& styler, Sci_Position& pos, Sci_Position max) {
@@ -199,15 +290,22 @@ static void GrabString(char* s, Accessor& styler, Sci_Position start, Sci_Positi
 	s[len] = '\0';
 }
 
-static void ScanIdentifier(Accessor& styler, Sci_Position& pos, WordList *keywords) {
+static void ScanIdentifier(Accessor& styler, StyleContext& sc, Sci_Position& pos, WordList *keywords, kwType& kwLast) {
 	Sci_Position start = pos;
-	while (IsIdentifierContinue(styler.SafeGetCharAt(pos, '\0')))
-		pos++;
+	while (IsAWordChar(styler.SafeGetCharAt(pos, '\0')))
+   {
+		//~ sc.Forward();
+      pos++;
+   }
 
    char s[MAX_NESTML_IDENT_CHARS + 1];
    int len = pos - start;
    len = len > MAX_NESTML_IDENT_CHARS ? MAX_NESTML_IDENT_CHARS : len;
    GrabString(s, styler, start, len);
+   printf("String:\n");
+   printf(s);
+   printf("\n");
+   // check for keywords
    bool keyword = false;
    for (int ii = 0; ii < NUM_NESTML_KEYWORD_LISTS; ii++) {
       if (keywords[ii].InList(s)) {
@@ -216,8 +314,62 @@ static void ScanIdentifier(Accessor& styler, Sci_Position& pos, WordList *keywor
          break;
       }
    }
-   if (!keyword) {
-      styler.ColourTo(pos - 1, SCE_NESTML_IDENTIFIER);
+   if (keyword)
+   {
+      printf("keyword\n");
+      char *resSearch;
+      resSearch = strstr(s, "neuron");
+      if (resSearch != NULL)
+         kwLast = kwNeuron;
+      else
+      {
+         bool isDef = false;
+         const char *defKeywords[] = {"alias", "shape", "function"};
+         std::vector<std::string> vecDefKw(
+            defKeywords, defKeywords + 3);
+         for (size_t jj=0; jj<vecDefKw.size(); jj++)
+         {
+            char defKw[vecDefKw[jj].size()];
+            strcpy(defKw, vecDefKw[jj].c_str());
+            resSearch = strstr(s, defKw);
+            if (resSearch != NULL)
+               isDef = true;
+         }
+         if (isDef)
+            kwLast = kwDef;
+         else
+            kwLast = kwOther;
+      }
+   }
+   else {
+      // if not a keyword, check if neuron/def identifier
+      if (kwLast == kwNeuron)
+      {
+         printf("neuron name!\n");
+         kwLast = kwOther;
+         styler.ColourTo(pos - 1, SCE_NESTML_NEURON);
+      }
+      else if (kwLast == kwDef)
+      {
+         kwLast = kwOther;
+         printf("defname!\n");
+         styler.ColourTo(pos - 1, SCE_NESTML_DEFNAME);
+      }
+      else
+      {
+         // check for units
+         if (IsNestmlUnit(styler, s, pos))
+         {
+            printf("unit!\n");
+            kwLast = kwOther;
+            styler.ColourTo(pos - 1, SCE_NESTML_UNIT);
+         }
+         else
+         {
+            kwLast = kwOther;
+            styler.ColourTo(pos - 1, SCE_NESTML_DEFAULT);
+         }
+      }
    }
 }
 
@@ -281,7 +433,7 @@ static void ScanNumber(Accessor& styler, Sci_Position& pos) {
 		 * `1.foo()`) or another period, in which case it's a range (e.g. 1..2)
 		 */
 		n = styler.SafeGetCharAt(pos + 1, '\0');
-		if (c == '.' && !(IsIdentifierStart(n) || n == '.')) {
+		if (c == '.' && !(IsWordStart(n) || n == '.')) {
 			error |= base != 10;
 			pos++;
 			/* It's ok to have no digits after the period. */
@@ -462,6 +614,11 @@ void SCI_METHOD LexerNESTML::Lex(Sci_PositionU startPos, Sci_Position length, in
 	styler.StartAt(pos);
 	styler.StartSegment(pos);
 
+   StyleContext sc(startPos, max - startPos, initStyle, styler);
+
+   // store information for neuron and definition highlighting
+   kwType kwLast = kwOther;
+
 	if (initStyle == SCE_NESTML_COMMENTBLOCK) {
 		ResumeBlockComment(styler, pos, max, styler.GetLineState(styler.GetLine(pos) - 1));
 	} else if (initStyle == SCE_NESTML_COMMENTLINE) {
@@ -479,8 +636,8 @@ void SCI_METHOD LexerNESTML::Lex(Sci_PositionU startPos, Sci_Position length, in
 			ScanWhitespace(styler, pos, max);
 		} else if (c == '#' || (c == '/' && n == '*')) {
 			ScanComments(styler, pos, max);
-		} else if (IsIdentifierStart(c)) {
-			ScanIdentifier(styler, pos, keywords);
+		} else if (IsWordStart(c)) {
+			ScanIdentifier(styler, sc, pos, keywords, kwLast);
 		} else if (IsADigit(c)) {
 			ScanNumber(styler, pos);
 		} else if (IsThreeCharOperator(c, n, n2)) {
