@@ -808,6 +808,7 @@ void SCI_METHOD LexerRust::Fold(Sci_PositionU startPos, Sci_Position length, int
 		}
 		if (!IsASpace(ch))
 			visibleChars++;
+		printf("EOL? %i vs %i and %i vs %i at %i\n", i, endPos, levelCurrent, levelNext, lineCurrent);
 		if (atEOL || (i == endPos-1)) {
 			int levelUse = levelCurrent;
 			if (options.foldSyntaxBased && options.foldAtElse) {
@@ -819,6 +820,7 @@ void SCI_METHOD LexerRust::Fold(Sci_PositionU startPos, Sci_Position length, int
 			if (levelUse < levelNext)
 				lev |= SC_FOLDLEVELHEADERFLAG;
 			if (lev != styler.LevelAt(lineCurrent)) {
+				printf("setting level for % i at %i\n", lineCurrent, lev);
 				styler.SetLevel(lineCurrent, lev);
 			}
 			lineCurrent++;

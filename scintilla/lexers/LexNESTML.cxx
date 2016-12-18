@@ -66,21 +66,21 @@ bool MatchUnit(const char* s, unsigned int mag_len)
    // test all units
    for (unsigned int j = 0; j < vecUnits.size(); j++)
    {
-      size_t k = 0;
-      size_t unit_len = vecUnits[j].size();
-      char currentChar = s[mag_len + k];
-      bool matchString = currentChar != '\0' ? true : false;
-      while (IsAWordChar(currentChar) && (k < unit_len))
-      {
-         matchString = currentChar == vecUnits[j][k] ? matchString : false;
-         k++;
-         currentChar = s[mag_len + k];
-      }
-      // if the current unit matched, check is not part of a longer word
-      if (matchString && (k == unit_len)) {
-         if (!IsAWordChar(currentChar))
-            return true;
-      }
+	  size_t k = 0;
+	  size_t unit_len = vecUnits[j].size();
+	  char currentChar = s[mag_len + k];
+	  bool matchString = currentChar != '\0' ? true : false;
+	  while (IsAWordChar(currentChar) && (k < unit_len))
+	  {
+		 matchString = currentChar == vecUnits[j][k] ? matchString : false;
+		 k++;
+		 currentChar = s[mag_len + k];
+	  }
+	  // if the current unit matched, check is not part of a longer word
+	  if (matchString && (k == unit_len)) {
+		 if (!IsAWordChar(currentChar))
+			return true;
+	  }
    }
    return false;
 }
@@ -91,22 +91,22 @@ bool IsNestmlUnit(Accessor &styler, const char* s, Sci_Position pos)
    size_t mag_len = 0;
    for (size_t i = 0; i < vecMagnitudes.size(); i++)
    {
-      char magnitude[vecMagnitudes[i].size()];
-      strcpy(magnitude, vecMagnitudes[i].c_str());
-      const char *resSearch = strstr(s, magnitude);
-      if (resSearch != NULL && !(resSearch-s)) {
-         mag_len = vecMagnitudes[i].size();
-         // if we do, check whether it is folloed by a valid unit
-         isUnit = MatchUnit(s, mag_len);
-         if (isUnit)
-            break;
-      } else {
-         mag_len = 0;
-      }
+	  char magnitude[vecMagnitudes[i].size()];
+	  strcpy(magnitude, vecMagnitudes[i].c_str());
+	  const char *resSearch = strstr(s, magnitude);
+	  if (resSearch != NULL && !(resSearch-s)) {
+		 mag_len = vecMagnitudes[i].size();
+		 // if we do, check whether it is folloed by a valid unit
+		 isUnit = MatchUnit(s, mag_len);
+		 if (isUnit)
+			break;
+	  } else {
+		 mag_len = 0;
+	  }
    }
    if (!isUnit)
    {
-      isUnit = MatchUnit(s, mag_len);
+	  isUnit = MatchUnit(s, mag_len);
    }
    return isUnit;
 }
@@ -143,12 +143,12 @@ struct OptionsNESTML {
 };
 
 static const char * const NESTMLWordLists[NUM_NESTML_KEYWORD_LISTS + 1] = {
-			"Primary keywords and identifiers",
-         "Secondary keywords",
-			"Units and types",
-			"Other keywords",
-			0,
-		};
+	"Primary keywords and identifiers",
+	"Secondary keywords",
+	"Units and types",
+	"Other keywords",
+	0,
+};
 
 struct OptionSetNESTML : public OptionSet<OptionsNESTML> {
 	OptionSetNESTML() {
@@ -241,7 +241,7 @@ Sci_Position SCI_METHOD LexerNESTML::WordListSet(int n, const char *wl) {
 }
 
 static bool IsWhitespace(int c) {
-    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+	return c == ' ' || c == '\t' || c == '\r' || c == '\n';
 }
 
 /* This isn't quite right for Unicode identifiers */
@@ -266,10 +266,10 @@ static void GrabString(char* s, Accessor& styler, Sci_Position start, Sci_Positi
 
 int IsKeyword(const char* s, WordList *keywords, bool& keyword) {
    for (int ii = 0; ii < NUM_NESTML_KEYWORD_LISTS; ii++) {
-      if (keywords[ii].InList(s)) {
-         keyword = true;
-         return SCE_NESTML_WORD + ii;
-      }
+	  if (keywords[ii].InList(s)) {
+		 keyword = true;
+		 return SCE_NESTML_WORD + ii;
+	  }
    }
    return -1;
 }
@@ -277,7 +277,7 @@ int IsKeyword(const char* s, WordList *keywords, bool& keyword) {
 static void ScanIdentifier(Accessor& styler, StyleContext& sc, Sci_Position& pos, WordList *keywords, kwType& kwLast) {
 	Sci_Position start = pos;
 	while (IsAWordChar(styler.SafeGetCharAt(pos, '\0')))
-      pos++;
+	  pos++;
 
    char s[MAX_NESTML_IDENT_CHARS + 1];
    int len = pos - start;
@@ -288,57 +288,57 @@ static void ScanIdentifier(Accessor& styler, StyleContext& sc, Sci_Position& pos
    int kwStyle = IsKeyword(s, keywords, keyword);
    if (keyword)
    {
-      styler.ColourTo(pos - 1, kwStyle);
-      char *resSearch;
-      resSearch = strstr(s, "neuron");
-      if (resSearch != NULL)
-         kwLast = kwNeuron;
-      else
-      {
-         bool isDef = false;
-         const char *defKeywords[] = {"alias", "shape", "function"};
-         std::vector<std::string> vecDefKw(
-            defKeywords, defKeywords + 3);
-         for (size_t jj=0; jj<vecDefKw.size(); jj++)
-         {
-            char defKw[vecDefKw[jj].size()];
-            strcpy(defKw, vecDefKw[jj].c_str());
-            resSearch = strstr(s, defKw);
-            if (resSearch != NULL)
-               isDef = true;
-         }
-         if (isDef)
-            kwLast = kwDef;
-         else
-            kwLast = kwOther;
-      }
+	  styler.ColourTo(pos - 1, kwStyle);
+	  char *resSearch;
+	  resSearch = strstr(s, "neuron");
+	  if (resSearch != NULL)
+		 kwLast = kwNeuron;
+	  else
+	  {
+		 bool isDef = false;
+		 const char *defKeywords[] = {"alias", "shape", "function"};
+		 std::vector<std::string> vecDefKw(
+			defKeywords, defKeywords + 3);
+		 for (size_t jj=0; jj<vecDefKw.size(); jj++)
+		 {
+			char defKw[vecDefKw[jj].size()];
+			strcpy(defKw, vecDefKw[jj].c_str());
+			resSearch = strstr(s, defKw);
+			if (resSearch != NULL)
+			   isDef = true;
+		 }
+		 if (isDef)
+			kwLast = kwDef;
+		 else
+			kwLast = kwOther;
+	  }
    }
    else {
-      // if not a keyword, check if neuron/def identifier
-      if (kwLast == kwNeuron)
-      {
-         kwLast = kwOther;
-         styler.ColourTo(pos - 1, SCE_NESTML_NEURON);
-      }
-      else if (kwLast == kwDef)
-      {
-         kwLast = kwOther;
-         styler.ColourTo(pos - 1, SCE_NESTML_DEFNAME);
-      }
-      else
-      {
-         // check for units
-         if (IsNestmlUnit(styler, s, pos))
-         {
-            kwLast = kwOther;
-            styler.ColourTo(pos - 1, SCE_NESTML_UNIT);
-         }
-         else
-         {
-            kwLast = kwOther;
-            styler.ColourTo(pos - 1, SCE_NESTML_DEFAULT);
-         }
-      }
+	  // if not a keyword, check if neuron/def identifier
+	  if (kwLast == kwNeuron)
+	  {
+		 kwLast = kwOther;
+		 styler.ColourTo(pos - 1, SCE_NESTML_NEURON);
+	  }
+	  else if (kwLast == kwDef)
+	  {
+		 kwLast = kwOther;
+		 styler.ColourTo(pos - 1, SCE_NESTML_DEFNAME);
+	  }
+	  else
+	  {
+		 // check for units
+		 if (IsNestmlUnit(styler, s, pos))
+		 {
+			kwLast = kwOther;
+			styler.ColourTo(pos - 1, SCE_NESTML_UNIT);
+		 }
+		 else
+		 {
+			kwLast = kwOther;
+			styler.ColourTo(pos - 1, SCE_NESTML_DEFAULT);
+		 }
+	  }
    }
 }
 
@@ -446,35 +446,35 @@ static void ScanNumber(Accessor& styler, Sci_Position& pos) {
 
 static bool IsOneCharOperator(int c) {
 	return c == ';' || c == ',' || c == '(' || c == ')'
-	    || c == '{' || c == '}' || c == '[' || c == ']'
-	    || c == '@' || c == '#' || c == '~' || c == '+'
-	    || c == '*' || c == '/' || c == '^' || c == '%'
-	    || c == '.' || c == ':' || c == '!' || c == '<'
-	    || c == '>' || c == '=' || c == '-' || c == '&'
-	    || c == '|' || c == '$' || c == '?';
+		|| c == '{' || c == '}' || c == '[' || c == ']'
+		|| c == '@' || c == '#' || c == '~' || c == '+'
+		|| c == '*' || c == '/' || c == '^' || c == '%'
+		|| c == '.' || c == ':' || c == '!' || c == '<'
+		|| c == '>' || c == '=' || c == '-' || c == '&'
+		|| c == '|' || c == '$' || c == '?';
 }
 
 static bool IsTwoCharOperator(int c, int n) {
 	return (c == '.' && n == '.') || (c == ':' && n == ':')
-	    || (c == '!' && n == '=') || (c == '<' && n == '<')
-	    || (c == '<' && n == '=') || (c == '>' && n == '>')
-	    || (c == '>' && n == '=') || (c == '=' && n == '=')
-	    || (c == '=' && n == '>') || (c == '-' && n == '>')
-	    || (c == '&' && n == '&') || (c == '|' && n == '|')
-	    || (c == '-' && n == '=') || (c == '&' && n == '=')
-	    || (c == '|' && n == '=') || (c == '+' && n == '=')
-	    || (c == '*' && n == '=') || (c == '/' && n == '=')
-	    || (c == '^' && n == '=') || (c == '%' && n == '=');
+		|| (c == '!' && n == '=') || (c == '<' && n == '<')
+		|| (c == '<' && n == '=') || (c == '>' && n == '>')
+		|| (c == '>' && n == '=') || (c == '=' && n == '=')
+		|| (c == '=' && n == '>') || (c == '-' && n == '>')
+		|| (c == '&' && n == '&') || (c == '|' && n == '|')
+		|| (c == '-' && n == '=') || (c == '&' && n == '=')
+		|| (c == '|' && n == '=') || (c == '+' && n == '=')
+		|| (c == '*' && n == '=') || (c == '/' && n == '=')
+		|| (c == '^' && n == '=') || (c == '%' && n == '=');
 }
 
 static bool IsThreeCharOperator(int c, int n, int n2) {
 	return (c == '<' && n == '<' && n2 == '=')
-	    || (c == '>' && n == '>' && n2 == '=');
+		|| (c == '>' && n == '>' && n2 == '=');
 }
 
 static bool IsValidCharacterEscape(int c) {
 	return c == 'n'  || c == 'r' || c == 't' || c == '\\'
-	    || c == '\'' || c == '"' || c == '0';
+		|| c == '\'' || c == '"' || c == '0';
 }
 
 static bool IsValidStringEscape(int c) {
@@ -495,6 +495,88 @@ static bool ScanNumericEscape(Accessor &styler, Sci_Position& pos, Sci_Position 
 		return true;
 	} else {
 		return false;
+	}
+}
+
+/* This is overly permissive for character literals in order to accept UTF-8 encoded
+ * character literals. */
+static void ScanCharacterLiteralOrLifetime(Accessor &styler, Sci_Position& pos, bool ascii_only) {
+	pos++;
+	int c = styler.SafeGetCharAt(pos, '\0');
+	int n = styler.SafeGetCharAt(pos + 1, '\0');
+	bool done = false;
+	bool valid_lifetime = !ascii_only && IsWordStart(c);
+	bool valid_char = true;
+	bool first = true;
+	while (!done) {
+		switch (c) {
+			case '\\':
+				done = true;
+				if (IsValidCharacterEscape(n)) {
+					pos += 2;
+				} else if (n == 'x') {
+					pos += 2;
+					valid_char = ScanNumericEscape(styler, pos, 2, false);
+				} else if (n == 'u' && !ascii_only) {
+					pos += 2;
+					if (styler.SafeGetCharAt(pos, '\0') != '{') {
+						// old-style
+						valid_char = ScanNumericEscape(styler, pos, 4, false);
+					} else {
+						int n_digits = 0;
+						while (IsADigit(styler.SafeGetCharAt(++pos, '\0'), 16) && n_digits++ < 6) {
+						}
+						if (n_digits > 0 && styler.SafeGetCharAt(pos, '\0') == '}')
+							pos++;
+						else
+							valid_char = false;
+					}
+				} else if (n == 'U' && !ascii_only) {
+					pos += 2;
+					valid_char = ScanNumericEscape(styler, pos, 8, false);
+				} else {
+					valid_char = false;
+				}
+				break;
+			case '\'':
+				valid_char = !first;
+				done = true;
+				break;
+			case '\t':
+			case '\n':
+			case '\r':
+			case '\0':
+				valid_char = false;
+				done = true;
+				break;
+			default:
+				if (ascii_only && !IsASCII((char)c)) {
+					done = true;
+					valid_char = false;
+				} else if (!IsAWordChar(c) && !first) {
+					done = true;
+				} else {
+					pos++;
+				}
+				break;
+		}
+		c = styler.SafeGetCharAt(pos, '\0');
+		n = styler.SafeGetCharAt(pos + 1, '\0');
+
+		first = false;
+	}
+	if (styler.SafeGetCharAt(pos, '\0') == '\'') {
+		valid_lifetime = false;
+	} else {
+		valid_char = false;
+	}
+	if (valid_lifetime) {
+		styler.ColourTo(pos - 1, SCE_RUST_LIFETIME);
+	} else if (valid_char) {
+		pos++;
+		styler.ColourTo(pos - 1, ascii_only ? SCE_RUST_BYTECHARACTER : SCE_RUST_CHARACTER);
+	} else {
+		styler.ColourTo(pos - 1, SCE_RUST_LEXERROR);
 	}
 }
 
@@ -554,7 +636,7 @@ static void ScanComments(Accessor &styler, Sci_Position& pos, Sci_Position max) 
 	if (c == '*')
 		ResumeBlockComment(styler, pos, max, 1);
    else
-      ResumeLineComment(styler, pos, max);
+	  ResumeLineComment(styler, pos, max);
 }
 
 static void ResumeString(Accessor &styler, Sci_Position& pos, Sci_Position max) {
@@ -566,12 +648,12 @@ static void ResumeString(Accessor &styler, Sci_Position& pos, Sci_Position max) 
 			break;
 		}
 		if (pos == styler.LineEnd(styler.GetLine(pos)))
-      {
-         error = true;
+	  {
+		 error = true;
 			//~ styler.SetLineState(styler.GetLine(pos), 0);
-      }
+	  }
 
-      pos++;
+	  pos++;
 		c = styler.SafeGetCharAt(pos, '\0');
 	}
 	if (!error)
@@ -583,10 +665,8 @@ bool IncreaseLevel(const char* beforeColumn, size_t strLen, WordList* keywords) 
    std::string strBefore(beforeColumn, beforeColumn + strLen);
    bool keyword = false;
    IsKeyword(beforeColumn, keywords, keyword);
-   if ( (keyword && (strBefore.find("else") == -1) && (strBefore.find("elif") == -1))
-      || (strBefore.find("if ") == 0)) {
-      printf("this worked\n");
-      return true;
+   if ( (keyword && (strBefore.find("else") == -1) && (strBefore.find("elif") == -1)) || (strBefore.find("if ") == 0)) {
+		return true;
    }
    return false;
 }
@@ -600,10 +680,10 @@ void SCI_METHOD LexerNESTML::Lex(Sci_PositionU startPos, Sci_Position length, in
 	styler.StartAt(pos);
 	styler.StartSegment(pos);
 
-   StyleContext sc(startPos, max - startPos, initStyle, styler);
+	StyleContext sc(startPos, max - startPos, initStyle, styler);
 
-   // store information for neuron and definition highlighting
-   kwType kwLast = kwOther;
+	// store information for neuron and definition highlighting
+	kwType kwLast = kwOther;
 
 	if (initStyle == SCE_NESTML_COMMENTBLOCK) {
 		ResumeBlockComment(styler, pos, max, styler.GetLineState(styler.GetLine(pos) - 1));
@@ -635,6 +715,8 @@ void SCI_METHOD LexerNESTML::Lex(Sci_PositionU startPos, Sci_Position length, in
 		} else if (IsOneCharOperator(c)) {
 			pos++;
 			styler.ColourTo(pos - 1, SCE_NESTML_OPERATOR);
+		} else if (c == '\'') {
+			ScanCharacterLiteralOrLifetime(styler, pos, false);
 		} else if (c == '"') {
 			pos++;
 			ResumeString(styler, pos, max);
@@ -654,8 +736,8 @@ void SCI_METHOD LexerNESTML::Fold(Sci_PositionU startPos, Sci_Position length, i
 
 	LexAccessor styler(pAccess);
 
-   PropSetSimple props;
-   Accessor styler2(pAccess, &props);
+	PropSetSimple props;
+	Accessor styler2(pAccess, &props);
 
 	Sci_PositionU endPos = startPos + length;
 	int visibleChars = 0;
@@ -691,35 +773,33 @@ void SCI_METHOD LexerNESTML::Fold(Sci_PositionU startPos, Sci_Position length, i
 		}
 		//~ if (options.foldSyntaxBased && (style == SCE_NESTML_OPERATOR)) {
 		if (options.foldSyntaxBased && (style == SCE_NESTML_OPERATOR || style == SCE_NESTML_WORD)) {
-         Sci_Position j = styler.LineStart(lineCurrent);
-         while (IsASpace(styler.SafeGetCharAt(j)))
-            j++;
-         char chNext = styler.SafeGetCharAt(i + 1);
-         char chNext2 = styler.SafeGetCharAt(i + 2);
-         char chNext3 = styler.SafeGetCharAt(i + 3, ' ');
-         // TODO: use a string to get everything between last space and : and check for the different
+			Sci_Position j = styler.LineStart(lineCurrent);
+			while (IsASpace(styler.SafeGetCharAt(j)))
+				j++;
+			char chNext2 = styler.SafeGetCharAt(i + 2);
+			char chNext3 = styler.SafeGetCharAt(i + 3, ' ');
 			if (ch == ':') {
-            char beforeColumn[MAX_NESTML_IDENT_CHARS + 1];
-            int len = i - j;
-            len = len > MAX_NESTML_IDENT_CHARS ? MAX_NESTML_IDENT_CHARS : len;
-            GrabString(beforeColumn, styler2, j, len);
+				char beforeColumn[MAX_NESTML_IDENT_CHARS + 1];
+				int len = i - j;
+				len = len > MAX_NESTML_IDENT_CHARS ? MAX_NESTML_IDENT_CHARS : len;
+				GrabString(beforeColumn, styler2, j, len);
 				// Measure the minimum before a ':' to allow
 				// folding on "end" else ":"
 				if (levelMinCurrent > levelNext) {
 					levelMinCurrent = levelNext;
 				}
-            if (IncreaseLevel(beforeColumn, i - j, keywords))
-            {
-               levelNext++;
-            }
+                if (IncreaseLevel(beforeColumn, i - j, keywords))
+                {
+                   levelNext++;
+                }
 			} else if ((ch == 'e') && (chNext == 'n') && (chNext2 == 'd') && !IsAWordChar(chNext3)) {
 				levelNext--;
 			}
 		}
 		if (!IsASpace(ch))
 			visibleChars++;
+		printf("EOL? %i vs %i and %i vs %i at %i\n", i, endPos, levelCurrent, levelNext, lineCurrent);
 		if (atEOL || (i == endPos-1)) {
-         printf("F**** EOL\n");
 			int levelUse = levelCurrent;
 			if (options.foldSyntaxBased) {
 				levelUse = levelMinCurrent;
@@ -730,7 +810,7 @@ void SCI_METHOD LexerNESTML::Fold(Sci_PositionU startPos, Sci_Position length, i
 			if (levelUse < levelNext)
 				lev |= SC_FOLDLEVELHEADERFLAG;
 			if (lev != styler.LevelAt(lineCurrent)) {
-            printf("Setting level\n");
+				printf("Setting level for %i at %i\n", lineCurrent, lev);
 				styler.SetLevel(lineCurrent, lev);
 			}
 			lineCurrent++;
