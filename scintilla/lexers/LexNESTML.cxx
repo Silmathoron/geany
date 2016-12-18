@@ -125,7 +125,6 @@ struct OptionsNESTML {
 	bool foldCommentExplicit;
 	std::string foldExplicitStart;
 	std::string foldExplicitEnd;
-	bool foldExplicitAnywhere;
 	bool foldCompact;
 	int  foldAtElseInt;
 	bool foldAtElse;
@@ -137,7 +136,6 @@ struct OptionsNESTML {
 		foldCommentExplicit = true;
 		foldExplicitStart = "";
 		foldExplicitEnd   = "";
-		foldExplicitAnywhere = false;
 		foldCompact = true;
 		foldAtElseInt = -1;
 		foldAtElse = false;
@@ -176,9 +174,6 @@ struct OptionSetNESTML : public OptionSet<OptionsNESTML> {
 
 		DefineProperty("fold.NESTML.explicit.end", &OptionsNESTML::foldExplicitEnd,
 			"The string to use for explicit fold end points, replacing the standard //}.");
-
-		DefineProperty("fold.NESTML.explicit.anywhere", &OptionsNESTML::foldExplicitAnywhere,
-			"Set this property to 1 to enable explicit fold points anywhere, not just in line comments.");
 
 		DefineProperty("lexer.NESTML.fold.at.else", &OptionsNESTML::foldAtElseInt,
 			"This option enables NESTML folding on a \"} else {\" line of an if statement.");
@@ -269,6 +264,16 @@ static void GrabString(char* s, Accessor& styler, Sci_Position start, Sci_Positi
 	s[len] = '\0';
 }
 
+int IsKeyword(const char* s, WordList *keywords, bool& keyword) {
+   for (int ii = 0; ii < NUM_NESTML_KEYWORD_LISTS; ii++) {
+      if (keywords[ii].InList(s)) {
+         keyword = true;
+         return SCE_NESTML_WORD + ii;
+      }
+   }
+   return -1;
+}
+
 static void ScanIdentifier(Accessor& styler, StyleContext& sc, Sci_Position& pos, WordList *keywords, kwType& kwLast) {
 	Sci_Position start = pos;
 	while (IsAWordChar(styler.SafeGetCharAt(pos, '\0')))
@@ -280,15 +285,10 @@ static void ScanIdentifier(Accessor& styler, StyleContext& sc, Sci_Position& pos
    GrabString(s, styler, start, len);
    // check for keywords
    bool keyword = false;
-   for (int ii = 0; ii < NUM_NESTML_KEYWORD_LISTS; ii++) {
-      if (keywords[ii].InList(s)) {
-         styler.ColourTo(pos - 1, SCE_NESTML_WORD + ii);
-         keyword = true;
-         break;
-      }
-   }
+   int kwStyle = IsKeyword(s, keywords, keyword);
    if (keyword)
    {
+      styler.ColourTo(pos - 1, kwStyle);
       char *resSearch;
       resSearch = strstr(s, "neuron");
       if (resSearch != NULL)
@@ -566,7 +566,10 @@ static void ResumeString(Accessor &styler, Sci_Position& pos, Sci_Position max) 
 			break;
 		}
 		if (pos == styler.LineEnd(styler.GetLine(pos)))
-			styler.SetLineState(styler.GetLine(pos), 0);
+      {
+         error = true;
+			//~ styler.SetLineState(styler.GetLine(pos), 0);
+      }
 
       pos++;
 		c = styler.SafeGetCharAt(pos, '\0');
@@ -574,6 +577,18 @@ static void ResumeString(Accessor &styler, Sci_Position& pos, Sci_Position max) 
 	if (!error)
 		pos++;
 	styler.ColourTo(pos - 1, SCE_NESTML_STRING);
+}
+
+bool IncreaseLevel(const char* beforeColumn, size_t strLen, WordList* keywords) {
+   std::string strBefore(beforeColumn, beforeColumn + strLen);
+   bool keyword = false;
+   IsKeyword(beforeColumn, keywords, keyword);
+   if ( (keyword && (strBefore.find("else") == -1) && (strBefore.find("elif") == -1))
+      || (strBefore.find("if ") == 0)) {
+      printf("this worked\n");
+      return true;
+   }
+   return false;
 }
 
 void SCI_METHOD LexerNESTML::Lex(Sci_PositionU startPos, Sci_Position length, int initStyle, IDocument *pAccess) {
@@ -639,6 +654,9 @@ void SCI_METHOD LexerNESTML::Fold(Sci_PositionU startPos, Sci_Position length, i
 
 	LexAccessor styler(pAccess);
 
+   PropSetSimple props;
+   Accessor styler2(pAccess, &props);
+
 	Sci_PositionU endPos = startPos + length;
 	int visibleChars = 0;
 	bool inLineComment = false;
@@ -647,6 +665,7 @@ void SCI_METHOD LexerNESTML::Fold(Sci_PositionU startPos, Sci_Position length, i
 	if (lineCurrent > 0)
 		levelCurrent = styler.LevelAt(lineCurrent-1) >> 16;
 	Sci_PositionU lineStartNext = styler.LineStart(lineCurrent+1);
+	Sci_PositionU lineStartCurrent = styler.LineStart(lineCurrent);
 	int levelMinCurrent = levelCurrent;
 	int levelNext = levelCurrent;
 	char chNext = styler[startPos];
@@ -670,41 +689,39 @@ void SCI_METHOD LexerNESTML::Fold(Sci_PositionU startPos, Sci_Position length, i
 				levelNext--;
 			}
 		}
-		if (options.foldComment && options.foldCommentExplicit && ((style == SCE_NESTML_COMMENTLINE) || options.foldExplicitAnywhere)) {
-			if (userDefinedFoldMarkers) {
-				if (styler.Match(i, options.foldExplicitStart.c_str())) {
-					levelNext++;
-				} else if (styler.Match(i, options.foldExplicitEnd.c_str())) {
-					levelNext--;
-				}
-			} else {
-				if ((ch == '/') && (chNext == '/')) {
-					char chNext2 = styler.SafeGetCharAt(i + 2);
-					if (chNext2 == '{') {
-						levelNext++;
-					} else if (chNext2 == '}') {
-						levelNext--;
-					}
-				}
-			}
-		}
-		if (options.foldSyntaxBased && (style == SCE_NESTML_OPERATOR)) {
-			if (ch == '{') {
-				// Measure the minimum before a '{' to allow
-				// folding on "} else {"
+		//~ if (options.foldSyntaxBased && (style == SCE_NESTML_OPERATOR)) {
+		if (options.foldSyntaxBased && (style == SCE_NESTML_OPERATOR || style == SCE_NESTML_WORD)) {
+         Sci_Position j = styler.LineStart(lineCurrent);
+         while (IsASpace(styler.SafeGetCharAt(j)))
+            j++;
+         char chNext = styler.SafeGetCharAt(i + 1);
+         char chNext2 = styler.SafeGetCharAt(i + 2);
+         char chNext3 = styler.SafeGetCharAt(i + 3, ' ');
+         // TODO: use a string to get everything between last space and : and check for the different
+			if (ch == ':') {
+            char beforeColumn[MAX_NESTML_IDENT_CHARS + 1];
+            int len = i - j;
+            len = len > MAX_NESTML_IDENT_CHARS ? MAX_NESTML_IDENT_CHARS : len;
+            GrabString(beforeColumn, styler2, j, len);
+				// Measure the minimum before a ':' to allow
+				// folding on "end" else ":"
 				if (levelMinCurrent > levelNext) {
 					levelMinCurrent = levelNext;
 				}
-				levelNext++;
-			} else if (ch == '}') {
+            if (IncreaseLevel(beforeColumn, i - j, keywords))
+            {
+               levelNext++;
+            }
+			} else if ((ch == 'e') && (chNext == 'n') && (chNext2 == 'd') && !IsAWordChar(chNext3)) {
 				levelNext--;
 			}
 		}
 		if (!IsASpace(ch))
 			visibleChars++;
 		if (atEOL || (i == endPos-1)) {
+         printf("F**** EOL\n");
 			int levelUse = levelCurrent;
-			if (options.foldSyntaxBased && options.foldAtElse) {
+			if (options.foldSyntaxBased) {
 				levelUse = levelMinCurrent;
 			}
 			int lev = levelUse | levelNext << 16;
@@ -713,6 +730,7 @@ void SCI_METHOD LexerNESTML::Fold(Sci_PositionU startPos, Sci_Position length, i
 			if (levelUse < levelNext)
 				lev |= SC_FOLDLEVELHEADERFLAG;
 			if (lev != styler.LevelAt(lineCurrent)) {
+            printf("Setting level\n");
 				styler.SetLevel(lineCurrent, lev);
 			}
 			lineCurrent++;
