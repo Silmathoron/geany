@@ -7,19 +7,19 @@ commentline=comment_line
 number=number_1
 word=keyword_1
 word2=function
-word3=type
-word4=type,italic
+word3=type,italic
+word4=keyword_1
 string=string_1
 character=character
 operator=operator
-identifier=type,italic
+identifier=type
 lexerror=error
 
 [keywords]
 # all items must be in one line
 primary=if elif else neuron equations internals input update parameters state output end function shape for alias
-secondary=real integer integrate_odes inhibitory excitatory spike current emit_spike get_sum steps
-tertiary=
+secondary=integrate_odes inhibitory excitatory spike current emit_spike get_sum steps
+tertiary=real integer
 
 [settings]
 # default extension used when saving files

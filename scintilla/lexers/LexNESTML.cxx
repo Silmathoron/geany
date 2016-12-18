@@ -61,36 +61,25 @@ const char *unitMagnitudes[] = {"y", "z", "a", "f", "p", "n", "mu", "m", "c",
 std::vector<std::string> vecMagnitudes(
    unitMagnitudes, unitMagnitudes + 20);
 
-bool MatchUnit(Accessor &styler, Sci_Position pos, unsigned int mag_len)
+bool MatchUnit(const char* s, unsigned int mag_len)
 {
    // test all units
    for (unsigned int j = 0; j < vecUnits.size(); j++)
    {
       size_t k = 0;
       size_t unit_len = vecUnits[j].size();
-      char currentChar = styler.SafeGetCharAt(pos + mag_len + k - 2);
-      printf(&currentChar);
-      printf("\n");
-      bool matchString = true;
-      while ((currentChar != '\0') && IsAWordChar(currentChar) && (k < unit_len))
+      char currentChar = s[mag_len + k];
+      bool matchString = currentChar != '\0' ? true : false;
+      while (IsAWordChar(currentChar) && (k < unit_len))
       {
-         printf("Compare: ");
-         printf(&currentChar);
-         printf(" ");
-         printf(&vecUnits[j][k]);
-         printf("\n");
          matchString = currentChar == vecUnits[j][k] ? matchString : false;
          k++;
-         currentChar = styler.SafeGetCharAt(pos + mag_len + k - 2);
+         currentChar = s[mag_len + k];
       }
       // if the current unit matched, check is not part of a longer word
-      if (matchString) {
-         printf("string matched: ");
-         printf(&currentChar);
-         printf("\n");
-         if (!IsAWordChar(styler.SafeGetCharAt(pos + mag_len + k - 1))) {
+      if (matchString && (k == unit_len)) {
+         if (!IsAWordChar(currentChar))
             return true;
-         }
       }
    }
    return false;
@@ -104,30 +93,20 @@ bool IsNestmlUnit(Accessor &styler, const char* s, Sci_Position pos)
    {
       char magnitude[vecMagnitudes[i].size()];
       strcpy(magnitude, vecMagnitudes[i].c_str());
-      //~ printf(magnitude);
-      //~ printf("\n");
-      // test whether we have a magnitude
       const char *resSearch = strstr(s, magnitude);
       if (resSearch != NULL && !(resSearch-s)) {
          mag_len = vecMagnitudes[i].size();
-         char currentChar = styler.SafeGetCharAt(pos + mag_len - 2);
          // if we do, check whether it is folloed by a valid unit
-         printf("matching magnitude: ");
-         printf(resSearch);
-         printf(" ");
-         printf(magnitude);
-         printf(" ");
-         printf(&currentChar);
-         printf("\n");
-         isUnit = MatchUnit(styler, pos, mag_len);
+         isUnit = MatchUnit(s, mag_len);
+         if (isUnit)
+            break;
       } else {
          mag_len = 0;
       }
    }
    if (!isUnit)
    {
-      printf("no match magnitude\n");
-      isUnit = MatchUnit(styler, pos, mag_len);
+      isUnit = MatchUnit(s, mag_len);
    }
    return isUnit;
 }
@@ -293,18 +272,12 @@ static void GrabString(char* s, Accessor& styler, Sci_Position start, Sci_Positi
 static void ScanIdentifier(Accessor& styler, StyleContext& sc, Sci_Position& pos, WordList *keywords, kwType& kwLast) {
 	Sci_Position start = pos;
 	while (IsAWordChar(styler.SafeGetCharAt(pos, '\0')))
-   {
-		//~ sc.Forward();
       pos++;
-   }
 
    char s[MAX_NESTML_IDENT_CHARS + 1];
    int len = pos - start;
    len = len > MAX_NESTML_IDENT_CHARS ? MAX_NESTML_IDENT_CHARS : len;
    GrabString(s, styler, start, len);
-   printf("String:\n");
-   printf(s);
-   printf("\n");
    // check for keywords
    bool keyword = false;
    for (int ii = 0; ii < NUM_NESTML_KEYWORD_LISTS; ii++) {
@@ -316,7 +289,6 @@ static void ScanIdentifier(Accessor& styler, StyleContext& sc, Sci_Position& pos
    }
    if (keyword)
    {
-      printf("keyword\n");
       char *resSearch;
       resSearch = strstr(s, "neuron");
       if (resSearch != NULL)
@@ -345,14 +317,12 @@ static void ScanIdentifier(Accessor& styler, StyleContext& sc, Sci_Position& pos
       // if not a keyword, check if neuron/def identifier
       if (kwLast == kwNeuron)
       {
-         printf("neuron name!\n");
          kwLast = kwOther;
          styler.ColourTo(pos - 1, SCE_NESTML_NEURON);
       }
       else if (kwLast == kwDef)
       {
          kwLast = kwOther;
-         printf("defname!\n");
          styler.ColourTo(pos - 1, SCE_NESTML_DEFNAME);
       }
       else
@@ -360,7 +330,6 @@ static void ScanIdentifier(Accessor& styler, StyleContext& sc, Sci_Position& pos
          // check for units
          if (IsNestmlUnit(styler, s, pos))
          {
-            printf("unit!\n");
             kwLast = kwOther;
             styler.ColourTo(pos - 1, SCE_NESTML_UNIT);
          }
@@ -599,9 +568,11 @@ static void ResumeString(Accessor &styler, Sci_Position& pos, Sci_Position max) 
 		if (pos == styler.LineEnd(styler.GetLine(pos)))
 			styler.SetLineState(styler.GetLine(pos), 0);
 
+      pos++;
 		c = styler.SafeGetCharAt(pos, '\0');
 	}
-	pos++;
+	if (!error)
+		pos++;
 	styler.ColourTo(pos - 1, SCE_NESTML_STRING);
 }
 
