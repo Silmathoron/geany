@@ -2,7 +2,7 @@
 [styling]
 # Edit these in the colorscheme .conf file instead
 default=default
-commentblock=comment
+commentblock=string_2
 commentline=comment_line
 number=number_1
 word=keyword_1
@@ -18,12 +18,13 @@ lexerror=error
 [keywords]
 # all items must be in one line
 primary=if elif else neuron equations internals input update parameters state output end function shape for alias
-secondary=integrate_odes inhibitory excitatory spike current emit_spike get_sum steps
+secondary=integrate_odes inhibitory excitatory spike current emit_spike get_sum steps min cond_sum curr_sum
 tertiary=real integer
 
 [settings]
 # default extension used when saving files
 extension=nestml
+tag_parser=Python
 
 # single comments, like # in this file
 comment_single=#

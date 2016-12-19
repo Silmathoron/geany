@@ -122,23 +122,13 @@ struct OptionsNESTML {
 	bool foldSyntaxBased;
 	bool foldComment;
 	bool foldCommentMultiline;
-	bool foldCommentExplicit;
-	std::string foldExplicitStart;
-	std::string foldExplicitEnd;
 	bool foldCompact;
-	int  foldAtElseInt;
-	bool foldAtElse;
 	OptionsNESTML() {
 		fold = false;
 		foldSyntaxBased = true;
 		foldComment = false;
 		foldCommentMultiline = true;
-		foldCommentExplicit = true;
-		foldExplicitStart = "";
-		foldExplicitEnd   = "";
 		foldCompact = true;
-		foldAtElseInt = -1;
-		foldAtElse = false;
 	}
 };
 
@@ -158,25 +148,11 @@ struct OptionSetNESTML : public OptionSet<OptionsNESTML> {
 
 		DefineProperty("fold.compact", &OptionsNESTML::foldCompact);
 
-		DefineProperty("fold.at.else", &OptionsNESTML::foldAtElse);
-
 		DefineProperty("fold.NESTML.syntax.based", &OptionsNESTML::foldSyntaxBased,
 			"Set this property to 0 to disable syntax based folding.");
 
 		DefineProperty("fold.NESTML.comment.multiline", &OptionsNESTML::foldCommentMultiline,
 			"Set this property to 0 to disable folding multi-line comments when fold.comment=1.");
-
-		DefineProperty("fold.NESTML.comment.explicit", &OptionsNESTML::foldCommentExplicit,
-			"Set this property to 0 to disable folding explicit fold points when fold.comment=1.");
-
-		DefineProperty("fold.NESTML.explicit.start", &OptionsNESTML::foldExplicitStart,
-			"The string to use for explicit fold start points, replacing the standard //{.");
-
-		DefineProperty("fold.NESTML.explicit.end", &OptionsNESTML::foldExplicitEnd,
-			"The string to use for explicit fold end points, replacing the standard //}.");
-
-		DefineProperty("lexer.NESTML.fold.at.else", &OptionsNESTML::foldAtElseInt,
-			"This option enables NESTML folding on a \"} else {\" line of an if statement.");
 
 		DefineWordListSets(NESTMLWordLists);
 	}
@@ -274,72 +250,68 @@ int IsKeyword(const char* s, WordList *keywords, bool& keyword) {
    return -1;
 }
 
-static void ScanIdentifier(Accessor& styler, StyleContext& sc, Sci_Position& pos, WordList *keywords, kwType& kwLast) {
+static void ScanIdentifier(Accessor& styler, Sci_Position& pos, WordList *keywords, kwType& kwLast) {
 	Sci_Position start = pos;
 	while (IsAWordChar(styler.SafeGetCharAt(pos, '\0')))
-	  pos++;
+		pos++;
 
-   char s[MAX_NESTML_IDENT_CHARS + 1];
-   int len = pos - start;
-   len = len > MAX_NESTML_IDENT_CHARS ? MAX_NESTML_IDENT_CHARS : len;
-   GrabString(s, styler, start, len);
-   // check for keywords
-   bool keyword = false;
-   int kwStyle = IsKeyword(s, keywords, keyword);
-   if (keyword)
-   {
-	  styler.ColourTo(pos - 1, kwStyle);
-	  char *resSearch;
-	  resSearch = strstr(s, "neuron");
-	  if (resSearch != NULL)
-		 kwLast = kwNeuron;
-	  else
-	  {
-		 bool isDef = false;
-		 const char *defKeywords[] = {"alias", "shape", "function"};
-		 std::vector<std::string> vecDefKw(
+	char s[MAX_NESTML_IDENT_CHARS + 1];
+	int len = pos - start;
+	len = len > MAX_NESTML_IDENT_CHARS ? MAX_NESTML_IDENT_CHARS : len;
+	GrabString(s, styler, start, len);
+	// check for keywords
+	bool keyword = false;
+	int kwStyle = IsKeyword(s, keywords, keyword);
+	if (keyword)
+	{
+		styler.ColourTo(pos - 1, kwStyle);
+		char *resSearch;
+		resSearch = strstr(s, "neuron");
+		if (resSearch != NULL)
+			kwLast = kwNeuron;
+		else
+		{
+			bool isDef = false;
+			const char *defKeywords[] = {"alias", "shape", "function"};
+			std::vector<std::string> vecDefKw(
 			defKeywords, defKeywords + 3);
-		 for (size_t jj=0; jj<vecDefKw.size(); jj++)
-		 {
-			char defKw[vecDefKw[jj].size()];
-			strcpy(defKw, vecDefKw[jj].c_str());
-			resSearch = strstr(s, defKw);
-			if (resSearch != NULL)
-			   isDef = true;
-		 }
-		 if (isDef)
-			kwLast = kwDef;
-		 else
+			for (size_t jj=0; jj<vecDefKw.size(); jj++) {
+				char defKw[vecDefKw[jj].size()];
+				strcpy(defKw, vecDefKw[jj].c_str());
+				resSearch = strstr(s, defKw);
+				if (resSearch != NULL)
+					isDef = true;
+			 }
+			if (isDef)
+				kwLast = kwDef;
+			else
+				kwLast = kwOther;
+		}
+	}
+	else {
+		// if not a keyword, check if neuron/def identifier
+		if (kwLast == kwNeuron) {
 			kwLast = kwOther;
-	  }
-   }
-   else {
-	  // if not a keyword, check if neuron/def identifier
-	  if (kwLast == kwNeuron)
-	  {
-		 kwLast = kwOther;
-		 styler.ColourTo(pos - 1, SCE_NESTML_NEURON);
-	  }
-	  else if (kwLast == kwDef)
-	  {
-		 kwLast = kwOther;
-		 styler.ColourTo(pos - 1, SCE_NESTML_DEFNAME);
-	  }
-	  else
-	  {
-		 // check for units
-		 if (IsNestmlUnit(styler, s, pos))
-		 {
+			styler.ColourTo(pos - 1, SCE_NESTML_NEURON);
+		}
+		else if (kwLast == kwDef) {
 			kwLast = kwOther;
-			styler.ColourTo(pos - 1, SCE_NESTML_UNIT);
-		 }
-		 else
-		 {
-			kwLast = kwOther;
-			styler.ColourTo(pos - 1, SCE_NESTML_DEFAULT);
-		 }
-	  }
-   }
+			styler.ColourTo(pos - 1, SCE_NESTML_DEFNAME);
+		}
+		else {
+			// check for units
+			if (IsNestmlUnit(styler, s, pos))
+			{
+				kwLast = kwOther;
+				styler.ColourTo(pos - 1, SCE_NESTML_UNIT);
+			}
+			else
+			{
+				kwLast = kwOther;
+				styler.ColourTo(pos - 1, SCE_NESTML_DEFAULT);
+			}
+		}
+	}
 }
 
 /* Scans a sequence of digits, returning true if it found any. */
@@ -498,88 +470,6 @@ static bool ScanNumericEscape(Accessor &styler, Sci_Position& pos, Sci_Position 
 	}
 }
 
-/* This is overly permissive for character literals in order to accept UTF-8 encoded
- * character literals. */
-static void ScanCharacterLiteralOrLifetime(Accessor &styler, Sci_Position& pos, bool ascii_only) {
-	pos++;
-	int c = styler.SafeGetCharAt(pos, '\0');
-	int n = styler.SafeGetCharAt(pos + 1, '\0');
-	bool done = false;
-	bool valid_lifetime = !ascii_only && IsWordStart(c);
-	bool valid_char = true;
-	bool first = true;
-	while (!done) {
-		switch (c) {
-			case '\\':
-				done = true;
-				if (IsValidCharacterEscape(n)) {
-					pos += 2;
-				} else if (n == 'x') {
-					pos += 2;
-					valid_char = ScanNumericEscape(styler, pos, 2, false);
-				} else if (n == 'u' && !ascii_only) {
-					pos += 2;
-					if (styler.SafeGetCharAt(pos, '\0') != '{') {
-						// old-style
-						valid_char = ScanNumericEscape(styler, pos, 4, false);
-					} else {
-						int n_digits = 0;
-						while (IsADigit(styler.SafeGetCharAt(++pos, '\0'), 16) && n_digits++ < 6) {
-						}
-						if (n_digits > 0 && styler.SafeGetCharAt(pos, '\0') == '}')
-							pos++;
-						else
-							valid_char = false;
-					}
-				} else if (n == 'U' && !ascii_only) {
-					pos += 2;
-					valid_char = ScanNumericEscape(styler, pos, 8, false);
-				} else {
-					valid_char = false;
-				}
-				break;
-			case '\'':
-				valid_char = !first;
-				done = true;
-				break;
-			case '\t':
-			case '\n':
-			case '\r':
-			case '\0':
-				valid_char = false;
-				done = true;
-				break;
-			default:
-				if (ascii_only && !IsASCII((char)c)) {
-					done = true;
-					valid_char = false;
-				} else if (!IsAWordChar(c) && !first) {
-					done = true;
-				} else {
-					pos++;
-				}
-				break;
-		}
-		c = styler.SafeGetCharAt(pos, '\0');
-		n = styler.SafeGetCharAt(pos + 1, '\0');
-
-		first = false;
-	}
-	if (styler.SafeGetCharAt(pos, '\0') == '\'') {
-		valid_lifetime = false;
-	} else {
-		valid_char = false;
-	}
-	if (valid_lifetime) {
-		styler.ColourTo(pos - 1, SCE_RUST_LIFETIME);
-	} else if (valid_char) {
-		pos++;
-		styler.ColourTo(pos - 1, ascii_only ? SCE_RUST_BYTECHARACTER : SCE_RUST_CHARACTER);
-	} else {
-		styler.ColourTo(pos - 1, SCE_RUST_LEXERROR);
-	}
-}
-
 static void ResumeBlockComment(Accessor &styler, Sci_Position& pos, Sci_Position max, int level) {
 	int c = styler.SafeGetCharAt(pos, '\0');
    
@@ -680,8 +570,6 @@ void SCI_METHOD LexerNESTML::Lex(Sci_PositionU startPos, Sci_Position length, in
 	styler.StartAt(pos);
 	styler.StartSegment(pos);
 
-	StyleContext sc(startPos, max - startPos, initStyle, styler);
-
 	// store information for neuron and definition highlighting
 	kwType kwLast = kwOther;
 
@@ -703,7 +591,7 @@ void SCI_METHOD LexerNESTML::Lex(Sci_PositionU startPos, Sci_Position length, in
 		} else if (c == '#' || (c == '/' && n == '*')) {
 			ScanComments(styler, pos, max);
 		} else if (IsWordStart(c)) {
-			ScanIdentifier(styler, sc, pos, keywords, kwLast);
+			ScanIdentifier(styler, pos, keywords, kwLast);
 		} else if (IsADigit(c)) {
 			ScanNumber(styler, pos);
 		} else if (IsThreeCharOperator(c, n, n2)) {
@@ -715,8 +603,6 @@ void SCI_METHOD LexerNESTML::Lex(Sci_PositionU startPos, Sci_Position length, in
 		} else if (IsOneCharOperator(c)) {
 			pos++;
 			styler.ColourTo(pos - 1, SCE_NESTML_OPERATOR);
-		} else if (c == '\'') {
-			ScanCharacterLiteralOrLifetime(styler, pos, false);
 		} else if (c == '"') {
 			pos++;
 			ResumeString(styler, pos, max);
@@ -753,7 +639,6 @@ void SCI_METHOD LexerNESTML::Fold(Sci_PositionU startPos, Sci_Position length, i
 	char chNext = styler[startPos];
 	int styleNext = styler.StyleAt(startPos);
 	int style = initStyle;
-	const bool userDefinedFoldMarkers = !options.foldExplicitStart.empty() && !options.foldExplicitEnd.empty();
 	for (Sci_PositionU i = startPos; i < endPos; i++) {
 		char ch = chNext;
 		chNext = styler.SafeGetCharAt(i + 1);
@@ -798,7 +683,6 @@ void SCI_METHOD LexerNESTML::Fold(Sci_PositionU startPos, Sci_Position length, i
 		}
 		if (!IsASpace(ch))
 			visibleChars++;
-		printf("EOL? %i vs %i and %i vs %i at %i\n", i, endPos, levelCurrent, levelNext, lineCurrent);
 		if (atEOL || (i == endPos-1)) {
 			int levelUse = levelCurrent;
 			if (options.foldSyntaxBased) {
@@ -810,7 +694,6 @@ void SCI_METHOD LexerNESTML::Fold(Sci_PositionU startPos, Sci_Position length, i
 			if (levelUse < levelNext)
 				lev |= SC_FOLDLEVELHEADERFLAG;
 			if (lev != styler.LevelAt(lineCurrent)) {
-				printf("Setting level for %i at %i\n", lineCurrent, lev);
 				styler.SetLevel(lineCurrent, lev);
 			}
 			lineCurrent++;
