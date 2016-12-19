@@ -18,8 +18,8 @@ lexerror=error
 [keywords]
 # all items must be in one line
 primary=if elif else neuron equations internals input update parameters state output end function shape for alias
-secondary=integrate_odes inhibitory excitatory spike current emit_spike get_sum steps min cond_sum curr_sum
-tertiary=real integer
+secondary=integrate_odes emit_spike get_sum steps min cond_sum curr_sum
+tertiary=real integer inhibitory excitatory spike current
 
 [settings]
 # default extension used when saving files

@@ -551,16 +551,6 @@ static void ResumeString(Accessor &styler, Sci_Position& pos, Sci_Position max) 
 	styler.ColourTo(pos - 1, SCE_NESTML_STRING);
 }
 
-bool IncreaseLevel(const char* beforeColumn, size_t strLen, WordList* keywords) {
-   std::string strBefore(beforeColumn, beforeColumn + strLen);
-   bool keyword = false;
-   IsKeyword(beforeColumn, keywords, keyword);
-   if ( (keyword && (strBefore.find("else") == -1) && (strBefore.find("elif") == -1)) || (strBefore.find("if ") == 0)) {
-		return true;
-   }
-   return false;
-}
-
 void SCI_METHOD LexerNESTML::Lex(Sci_PositionU startPos, Sci_Position length, int initStyle, IDocument *pAccess) {
 	PropSetSimple props;
 	Accessor styler(pAccess, &props);
@@ -615,6 +605,14 @@ void SCI_METHOD LexerNESTML::Lex(Sci_PositionU startPos, Sci_Position length, in
 	styler.Flush();
 }
 
+bool DecreaseLevel(const char* kwLeveling, size_t strLen) {
+   std::string strKw(kwLeveling, kwLeveling + strLen);
+   if ( strKw.find("else") == 0 || strKw.find("elif") == 0 || strKw.find("end") == 0) {
+		return true;
+   }
+   return false;
+}
+
 void SCI_METHOD LexerNESTML::Fold(Sci_PositionU startPos, Sci_Position length, int initStyle, IDocument *pAccess) {
 
 	if (!options.fold)
@@ -648,6 +646,15 @@ void SCI_METHOD LexerNESTML::Fold(Sci_PositionU startPos, Sci_Position length, i
 		bool atEOL = i == (lineStartNext-1);
 		if (style == SCE_NESTML_COMMENTLINE)
 			inLineComment = true;
+		else if (style == SCE_NESTML_WORD) {
+			// decrease current level for elif, else, and end
+			char kwLeveling[MAX_NESTML_IDENT_CHARS + 1];
+			int len = lineStartNext - 1 - i;
+			len = len > MAX_NESTML_IDENT_CHARS ? MAX_NESTML_IDENT_CHARS : len;
+			GrabString(kwLeveling, styler2, i, len);
+			if (DecreaseLevel(kwLeveling, len))
+				levelNext--;
+		}
 		if (options.foldComment && options.foldCommentMultiline && IsStreamCommentStyle(style) && !inLineComment) {
 			if (!IsStreamCommentStyle(stylePrev)) {
 				levelNext++;
@@ -659,26 +666,13 @@ void SCI_METHOD LexerNESTML::Fold(Sci_PositionU startPos, Sci_Position length, i
 		//~ if (options.foldSyntaxBased && (style == SCE_NESTML_OPERATOR)) {
 		if (options.foldSyntaxBased && (style == SCE_NESTML_OPERATOR || style == SCE_NESTML_WORD)) {
 			Sci_Position j = styler.LineStart(lineCurrent);
-			while (IsASpace(styler.SafeGetCharAt(j)))
-				j++;
-			char chNext2 = styler.SafeGetCharAt(i + 2);
-			char chNext3 = styler.SafeGetCharAt(i + 3, ' ');
 			if (ch == ':') {
-				char beforeColumn[MAX_NESTML_IDENT_CHARS + 1];
-				int len = i - j;
-				len = len > MAX_NESTML_IDENT_CHARS ? MAX_NESTML_IDENT_CHARS : len;
-				GrabString(beforeColumn, styler2, j, len);
 				// Measure the minimum before a ':' to allow
 				// folding on "end" else ":"
 				if (levelMinCurrent > levelNext) {
 					levelMinCurrent = levelNext;
 				}
-                if (IncreaseLevel(beforeColumn, i - j, keywords))
-                {
-                   levelNext++;
-                }
-			} else if ((ch == 'e') && (chNext == 'n') && (chNext2 == 'd') && !IsAWordChar(chNext3)) {
-				levelNext--;
+				levelNext++;
 			}
 		}
 		if (!IsASpace(ch))

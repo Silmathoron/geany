@@ -1417,7 +1417,8 @@ static gint get_python_indent(ScintillaObject *sci, gint line)
 
 	/* add extra indentation for Python after colon */
 	if (sci_get_char_at(sci, last_char) == ':' &&
-		sci_get_style_at(sci, last_char) == SCE_P_OPERATOR)
+		(sci_get_style_at(sci, last_char) == SCE_P_OPERATOR ||
+		 sci_get_style_at(sci, last_char) == SCE_NESTML_OPERATOR) )
 	{
 		return 1;
 	}
